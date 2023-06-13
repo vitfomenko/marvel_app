@@ -1,6 +1,5 @@
 import { Component } from 'react';
 import './charInfo.scss';
-import thor from '../../resources/img/thor.jpeg';
 import MarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorPage from '../errorPage/ErrorPage';
@@ -103,6 +102,10 @@ const View = ({char}) => {
                 <ul className="char__comics-list">
                     {
                        comics.length !== 0 ? comics.map((item, i) => {
+                            // eslint-disable-next-line
+                            if(i > 9) {
+                                return;
+                            }
                             return (
                                 <li key={i} className="char__comics-item">
                                     {item.name}
