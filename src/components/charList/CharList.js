@@ -1,63 +1,52 @@
-import {Component} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import Spinner from '../spinner/Spinner';
 import ErrorPage from '../errorPage/ErrorPage';
-import MarvelService from '../../services/MarvelService';
+import useMarvelService from '../../services/MarvelService';
 import './charList.scss';
 
-class CharList extends Component {
+const CharList = (props) => {
 
-    state = {
-        charList: [],
-        loading: true,
-        error: false,
-        newCharLoading: false,
-        offset: 230,
-        noMoreChar: false
-    }
+    const [charList, setCharList] = useState([]);
+    const [newCharLoading, setNewCharLoading] = useState(false);
+    const [offset, setOffset] = useState(230);
+    const [noMoreChar, setNoMoreChar] = useState(false);
     
-    marvelService = new MarvelService();
+    const {loading, error, getAllCharacters} = useMarvelService();
 
-    componentDidMount() {
-        this.handleRequest();
-    }
+    useEffect(() => {
+        handleRequest(offset, true);
+    }, []);
 
-    handleRequest = (offset) => {
-        this.onCharListLoading();
-        this.marvelService.getAllCharacters(offset)
-            .then(this.onCharListLoaded)
-            .catch(this.onError)
-    }
+    const handleRequest = (offset, initial) => {
+        initial ? setNewCharLoading(false) : setNewCharLoading(true);
+        getAllCharacters(offset)
+            .then(onCharListLoaded);
+    };
 
-    onCharListLoaded = (newCharList) => {
-
+    const onCharListLoaded = (newCharList) => {
         let end = false;
 
         if(newCharList.length < 9) {
             end = true;
         }
 
-        this.setState(({offset, charList}) => ({
-            charList: [...charList, ...newCharList],
-            loading: false,
-            newCharsLoading: false,
-            offset: offset + 9,
-            noMoreChar: end
-        }))
+        setCharList(charList => [...charList, ...newCharList]);
+        setNewCharLoading(false);
+        setOffset(offset => offset + 9);
+        setNoMoreChar(() => end);
+    };
+
+    const itemRefs = useRef([]);
+
+    const focusOnItem = (id) => {
+        itemRefs.current.forEach(item => item.classList.remove('char__item_selected'));
+        itemRefs.current[id].classList.add('char__item_selected');
+        itemRefs.current[id].focus();
     }
 
-    onCharListLoading = () => {
-        this.setState({newCharsLoading: true})
-    }
-
-    onError = () => {
-        this.setState({
-            error: true,
-            loading: false
-        })
-    }
-
-    renderItems(arr) {
-        const items =  arr.map((item) => {
+    // This part of code just for optimization
+    function renderItems(arr) {
+        const items =  arr.map((item, i) => {
             let imgStyle = {'objectFit' : 'cover'};
             if (item.thumbnail === 'http://i.annihil.us/u/prod/marvel/i/mg/b/40/image_not_available.jpg') {
                 imgStyle = {'objectFit' : 'unset'};
@@ -67,7 +56,17 @@ class CharList extends Component {
                 <li 
                     className="char__item"
                     key={item.id}
-                    onClick={() => this.props.onCharSelected(item.id)}>
+                    ref={el => itemRefs.current[i] = el}
+                    onClick={() => {
+                        props.onCharSelected(item.id);
+                        focusOnItem(i);
+                    }}
+                    onKeyPress={(e) => {
+                        if(e.key === ' ' || e.key === 'Enter') {
+                            props.onCharSelected(item.id);
+                            focusOnItem(i);
+                        }
+                    }}>
                         <img src={item.thumbnail} alt={item.name} style={imgStyle}/>
                         <div className="char__name">{item.name}</div>
                 </li>
@@ -80,32 +79,27 @@ class CharList extends Component {
             </ul>
         )
     }
-
-    render() {
-
-        const {charList, loading, error, offset, newCharLoading, noMoreChar} = this.state;
         
-        const items = this.renderItems(charList);
+    const items = renderItems(charList);
 
-        const errorPage = error ? <ErrorPage/> : null;
-        const spinner = loading ? <Spinner/> : null;
-        const content = !(loading || error) ? items : null;
+    const errorPage = error ? <ErrorPage/> : null;
+    const spinner = loading && !setNewCharLoading ? <Spinner/> : null;
 
-        return (
-            <div className="char__list">
-                {errorPage}
-                {spinner}
-                {content}
-                <button 
-                    className="button button__main button__long"
-                    disabled={newCharLoading}
-                    style={{'display': noMoreChar ? 'none' : 'block'}}
-                    onClick={() => this.handleRequest(offset)}>
-                    <div className="inner">load more</div>
-                </button>
-            </div>
-        )
-    }
+    return (
+        <div className="char__list">
+            {errorPage}
+            {spinner}
+            {items}
+            <button 
+                className="button button__main button__long"
+                disabled={newCharLoading}
+                style={{'display': noMoreChar ? 'none' : 'block'}}
+                onClick={() => handleRequest(offset)}>
+                <div className="inner">load more</div>
+            </button>
+        </div>
+    )
+
 }
 
 export default CharList;
