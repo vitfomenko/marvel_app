@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import './charInfo.scss';
 import useMarvelService from '../../services/MarvelService';
 import Spinner from '../spinner/Spinner';
 import ErrorPage from '../errorPage/ErrorPage';
 import Skeleton from '../skeleton/Skeleton';
+
+import './charInfo.scss';
 
 const CharInfo = (props) => {
 
